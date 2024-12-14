@@ -49,3 +49,11 @@ def delete_user(id: int):
     del database[id-1]
 
     return { "message": "User deleted" }
+
+
+@app.get("/users/{id}", response_model=UserPublic)
+def read_user(id: int):
+    if id > len(database) or id < 1:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="User not found")
+    
+    return database[id-1]
