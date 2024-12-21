@@ -100,22 +100,29 @@ def test_update_user(client, user, token):
     }
 
 
-def test_update_integrity_error(client, user, token):
-    client.post(
-        "/users",
-        json={
-            "username": "fausto",
-            "email": "fausto@example.com",
-            "password": "secret"
-        }
-    )
-
+def test_update_integrity_error_on_username(client, user, other_user, token):
+    # Validando username
     response_update = client.put(
         f"/users/{user.id}",
         headers={ "Authorization": f"Bearer {token}" },
         json={
-            "username": "fausto",
-            "email": "bob@example.com",
+            "username": other_user.username,
+            "email": user.email,
+            "password": "mynewpassword",
+        }
+    )
+
+    assert response_update.status_code == HTTPStatus.CONFLICT
+    assert response_update.json() == { "detail": "Username or Email already exists" }
+
+
+def test_update_integrity_error_on_email(client, user, other_user, token):
+    response_update = client.put(
+        f"/users/{user.id}",
+        headers={ "Authorization": f"Bearer {token}" },
+        json={
+            "username": user.username,
+            "email": other_user.email,
             "password": "mynewpassword",
         }
     )
