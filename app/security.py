@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 
-from jwt import encode, decode, DecodeError
+from jwt import encode, decode, DecodeError, ExpiredSignatureError
 
 from pwdlib import PasswordHash
 
@@ -49,6 +49,12 @@ def get_current_user(session: Session = Depends(get_session), token: str = Depen
         headers={ "WWW-Authenticate": "Bearer" }
     )
 
+    credentials_expired_exception = HTTPException(
+        status_code=HTTPStatus.UNAUTHORIZED,
+        detail="Expired credentials",
+        headers={ "WWW-Authenticate": "Bearer" }
+    )
+
     try:
         payload = decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         username: str = payload.get("sub")
@@ -60,6 +66,9 @@ def get_current_user(session: Session = Depends(get_session), token: str = Depen
 
     except DecodeError:
         raise credentials_exception
+    
+    except ExpiredSignatureError:
+        raise credentials_expired_exception
     
     user = session.scalar(select(User).where(User.email == token_data.username))
 
