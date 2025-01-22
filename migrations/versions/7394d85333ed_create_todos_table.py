@@ -1,8 +1,8 @@
 """create todos table
 
-Revision ID: c8ce79125c89
+Revision ID: 7394d85333ed
 Revises: 53d029f39138
-Create Date: 2024-12-21 18:37:52.837795
+Create Date: 2025-01-21 02:18:33.481437
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'c8ce79125c89'
+revision: str = '7394d85333ed'
 down_revision: Union[str, None] = '53d029f39138'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -25,8 +25,8 @@ def upgrade() -> None:
     sa.Column('title', sa.String(), nullable=False),
     sa.Column('description', sa.String(), nullable=False),
     sa.Column('state', sa.Enum('draft', 'todo', 'doing', 'done', 'trasf', name='todostate'), nullable=False),
-    sa.Column('use_id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['use_id'], ['users.id'], ),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     # ### end Alembic commands ###

@@ -39,6 +39,6 @@ class Todo:
     description: Mapped[str]
     state: Mapped[TodoState]
 
-    use_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
 
     user: Mapped[User] = relationship(init=False, back_populates="todos")

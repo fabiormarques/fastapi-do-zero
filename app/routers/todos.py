@@ -1,11 +1,13 @@
+from http import HTTPStatus
 from typing import Annotated
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Query
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import get_session
 from app.models import Todo, User
-from app.schemas import TodoPublic, TodoSchema
+from app.schemas import FilterTodo, Message, TodoList, TodoPublic, TodoSchema, TodoUpdate
 from app.security import get_current_user
 
 
@@ -15,13 +17,31 @@ SessionEnd = Annotated[Session, Depends(get_session)]
 CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
+@router.get("/", response_model=TodoList)
+def list_todos(session: SessionEnd, user: CurrentUser, todo_filter: Annotated[FilterTodo, Query()]):
+    query = select(Todo).where(Todo.user_id == user.id)
+
+    if todo_filter.title:
+        query = query.filter(Todo.title.contains(todo_filter.title))
+
+    if todo_filter.description:
+        query = query.filter(Todo.description.contains(todo_filter.description))
+
+    if todo_filter.state:
+        query = query.filter(Todo.state == todo_filter.state)
+
+    todos = session.scalars(query.offset(todo_filter.offset).limit(todo_filter.limit)).all()
+
+    return { "todos": todos}
+
+
 @router.post("/", response_model=TodoPublic)
 def create_todo(todo: TodoSchema, user: CurrentUser, session: SessionEnd):
     db_todo = Todo(
         title=todo.title,
         description=todo.description,
         state=todo.state,
-        use_id=user.id
+        user_id=user.id
     )
 
     session.add(db_todo)
@@ -29,3 +49,33 @@ def create_todo(todo: TodoSchema, user: CurrentUser, session: SessionEnd):
     session.refresh(db_todo)
 
     return db_todo
+
+
+@router.patch("/{id}", response_model=TodoPublic)
+def patch_todo(id: int, session: SessionEnd, user: CurrentUser, todo: TodoUpdate):
+    db_todo = session.scalar(select(Todo).where(Todo.user_id == user.id, Todo.id == id))
+
+    if not db_todo:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Task not found.")
+    
+    for key, value in todo.model_dump(exclude_unset=True).items():
+        setattr(db_todo, key, value)
+
+    session.add(db_todo)
+    session.commit()
+    session.refresh(db_todo)
+
+    return db_todo
+
+
+@router.delete("/{id}", response_model=Message)
+def delete_todo(id: int, session: SessionEnd, user: CurrentUser):
+    db_todo = session.scalar(select(Todo).where(Todo.user_id == user.id, Todo.id == id))
+
+    if not db_todo:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Task not found.")
+    
+    session.delete(db_todo)
+    session.commit()
+
+    return { "message": "Task has been deleted successfully" }

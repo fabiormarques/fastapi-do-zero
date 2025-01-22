@@ -29,7 +29,7 @@ def test_create_todo(session, user: User):
         title="Teste Todo",
         description="Teste Desc",
         state="draft",
-        use_id=user.id
+        user_id=user.id
     )
 
     session.add(todo)
